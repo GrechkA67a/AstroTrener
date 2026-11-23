@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажёр по астрономии — ВсОШ</title>
+<style>
+:root{
+  --bg:#0b1026;
+  --card:#161e44;
+  --card2:#10162f;
+  --accent:#2e4bd6;
+  --ok:#2ecc71;
+  --err:#e74c3c;
+  --text:#e8ecf8;
+  --muted:#8a93b8;
+  --warn:#f1c40f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 700px at 50% -10%, #1a2457 0%, var(--bg) 60%);
+  color:var(--text);
+  font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+}
+.screen{display:none;padding:20px 16px;max-width:640px;margin:0 auto;animation:fade .25s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+h1{font-size:1.6rem;margin:6px 0 4px}
+h2{font-size:1.15rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:.95rem}
+.center{text-align:center}
+.big{font-size:1.3rem}
+
+.btn{
+  display:block;width:100%;margin:10px 0;padding:16px 18px;
+  font-size:1.05rem;font-weight:600;color:var(--text);
+  background:linear-gradient(180deg,var(--card),var(--card2));
+  border:1px solid #2b3a82;border-radius:12px;cursor:pointer;
+  min-height:44px;text-align:left;
+}
+.btn:active{transform:scale(.98);filter:brightness(1.15)}
+.btn.primary{background:var(--accent);border-color:#4a68ff;text-align:center}
+.btn.ghost{background:transparent;border:1px solid #36458f;color:var(--muted);text-align:center}
+.btn.small{padding:12px 14px;font-size:.95rem;text-align:center;margin:6px 0}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+
+.ins{color:var(--muted);font-size:.9rem;line-height:1.5;margin-top:18px;text-align:center}
+.ins b{color:var(--text)}
+
+.modes-row{display:flex;gap:8px;margin:12px 0 4px}
+.mode-btn{flex:1;padding:12px 6px;font-size:.85rem;font-weight:600;text-align:center;
+  background:var(--card2);border:1px solid #2b3a82;border-radius:12px;color:var(--muted);cursor:pointer;min-height:44px}
+.mode-btn.active{background:var(--accent);border-color:#4a68ff;color:#fff}
+
+table.rec{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:.95rem}
+table.rec th{color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;
+  text-align:left;padding:8px 6px;border-bottom:1px solid #2b3a82}
+table.rec td{padding:8px 6px;border-bottom:1px solid #1c2450}
+table.rec .score{color:var(--ok);font-weight:700}
+.rec-sec{margin-bottom:14px}
+.rec-sec h3{font-size:.9rem;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+.newrec{color:var(--ok);font-weight:700;font-size:1.1rem;animation:fade .4s ease}
+
+/* game card */
+.scorebar{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+.hearts{font-size:1.5rem;letter-spacing:2px;min-width:70px}
+.hearts .off{opacity:.22;filter:grayscale(1)}
+.score-info{margin-left:auto;text-align:right;color:var(--muted);font-size:.85rem;line-height:1.3}
+.score-info b{color:var(--text)}
+.card{
+  background:linear-gradient(180deg,var(--card),var(--card2));
+  border:1px solid #2b3a82;border-radius:16px;padding:20px 18px;
+}
+.tag{display:inline-block;font-size:.75rem;color:#aeb8e8;background:#232d5e;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+.qtext{font-size:1.25rem;line-height:1.4;margin:0 0 14px}
+.timer-bar{height:8px;border-radius:4px;background:#222a52;overflow:hidden;margin:0 0 16px}
+.timer-fill{height:100%;width:100%;background:var(--ok);border-radius:4px;transition:width .1s linear}
+.timer-fill.warn{background:var(--warn)}
+.timer-fill.danger{background:var(--err)}
+
+.options{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.opt{
+  min-height:52px;padding:12px 14px;border-radius:12px;font-size:1rem;
+  background:#131a3d;border:1px solid #2b3a82;color:var(--text);
+  text-align:left;cursor:pointer;font-family:inherit;
+}
+.opt:active{transform:scale(.98)}
+.opt.correct{background:rgba(46,204,113,.18);border-color:var(--ok);color:#b9f3d3}
+.opt.wrong{background:rgba(231,76,60,.16);border-color:var(--err);color:#ffc2bc}
+.opt.dim{opacity:.35;cursor:default}
+.opt:disabled{cursor:default}
+
+.feedback{margin-top:14px;min-height:1.4em;font-size:1rem;font-weight:600}
+.feedback.okc{color:var(--ok)}
+.feedback.errc{color:var(--err)}
+.next-btn{display:none;margin-top:16px}
+
+/* stats diagram */
+.stats-box{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid #2b3a82;border-radius:16px;padding:20px 18px;margin-bottom:16px}
+.pie{width:150px;height:150px;border-radius:50%;margin:6px auto 16px;position:relative;display:flex;align-items:center;justify-content:center}
+.pie .hole{width:100px;height:100px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem}
+.pie .hole span{font-size:.7rem;font-weight:600;color:var(--muted);display:block;text-align:center;line-height:1.1}
+.stat-legend{display:flex;justify-content:center;gap:22px;color:var(--text);font-size:.9rem;margin-bottom:14px}
+.stat-legend .ok{color:var(--ok);font-weight:700}
+.stat-legend .bad{color:var(--err);font-weight:700}
+.hist{display:flex;gap:4px;align-items:flex-end;justify-content:center;height:70px;margin-top:6px}
+.hist .bar{width:14px;border-radius:3px;min-height:3px}
+.hist .bar.okc{background:var(--ok)}
+.hist .bar.errc{background:var(--err)}
+
+/* facts reference */
+.fact-list{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}
+.fact-card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid #2b3a82;border-radius:12px;padding:12px 14px}
+.fact-card .fq{font-size:1rem;margin:0 0 4px}
+.fact-card .fa{color:var(--ok);font-size:.9rem;font-weight:600}
+
+/* formula reference */
+.formula{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid #2b3a82;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.formula .fname{font-weight:700;color:var(--accent-light,#7d95ff);margin:0 0 4px;font-size:.95rem}
+.formula .fexpr{font-size:1.05rem;margin:4px 0;font-weight:600}
+.formula .fex{color:var(--muted);font-size:.85rem;line-height:1.4;margin:4px 0 0}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(5,8,20,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border:1px solid #2b3a82;border-radius:16px;padding:22px;max-width:360px;width:100%;text-align:center}
+.modal p{margin:4px 0 16px;color:var(--muted)}
+.modal .btns{display:flex;gap:10px}
+.modal .btn{margin:0}
+</style>
+</head>
+<body>
+
+<!-- МЕНЮ -->
+<section id="screen-menu" class="screen active">
+  <div class="center" style="margin-top:8vh">
+    <h1>🔭 Тренажёр по астрономии</h1>
+    <p class="sub">Подготовка к ВсОШ · муниципальный и региональный этапы</p>
+    <button class="btn primary" onclick="showScreen('mode-select')">🧠 Проверить знания</button>
+    <button class="btn" onclick="showScreen('records');renderRecords()">🏆 Рекорды</button>
+    <button class="btn" onclick="startTrain()">🎓 Тренировка</button>
+    <button class="btn" onclick="showFactsRef()">📖 Факты</button>
+    <button class="btn" onclick="showFormulas()">🧮 Формулы и примеры</button>
+    <p class="ins">3 жизни, <b>15 секунд</b> на ответ.<br>Ошибка или просрочка — <b>минус жизнь</b>.</p>
+  </div>
+</section>
+
+<!-- РЕКОРДЫ -->
+<section id="screen-records" class="screen">
+  <h1>🏆 Рекорды</h1>
+  <p class="sub">Топ-5 в каждом режиме</p>
+  <div id="records-body"></div>
+  <button class="btn ghost" onclick="showScreen('menu')">← Назад в меню</button>
+</section>
+
+<!-- ВЫБОР РЕЖИМА -->
+<section id="screen-mode-select" class="screen">
+  <div class="center" style="margin-top:15vh">
+    <h1>🧭 Выбери режим</h1>
+    <p class="sub">Игра — с жизнями и таймером</p>
+    <button class="btn" onclick="setMode('cs');startGame()">✨ Созвездие → звезда</button>
+    <button class="btn" onclick="setMode('sc');startGame()">🌠 Звезда → созвездие</button>
+    <button class="btn" onclick="setMode('facts');startGame()">📚 Факты</button>
+    <button class="btn" onclick="setMode('calc');startGame()">🧮 Расчётные задачи</button>
+    <button class="btn" onclick="setMode('coords');startGame()">🧭 Координаты и время</button>
+    <button class="btn ghost" onclick="showScreen('menu')">← Назад в меню</button>
+  </div>
+</section>
+
+<!-- ИГРА -->
+<section id="screen-game" class="screen">
+  <div class="scorebar">
+    <div class="hearts" id="hearts">❤️❤️❤️</div>
+    <div class="score-info">
+      <div>Верно: <b id="g-correct">0</b></div>
+      <div>Серия: <b id="g-streak">0</b></div>
+    </div>
+  </div>
+  <div class="card">
+    <span class="tag" id="g-tag">Факты</span>
+    <p class="qtext" id="g-question">Вопрос</p>
+    <div class="timer-bar"><div class="timer-fill" id="g-timer-fill"></div></div>
+    <div class="options" id="g-options"></div>
+    <div class="feedback" id="g-feedback"></div>
+    <button class="btn next-btn" id="g-next" onclick="nextCard()">Следующая карточка →</button>
+  </div>
+  <button class="btn ghost" style="margin-top:16px" onclick="exitGame()">В главное меню</button>
+</section>
+
+<!-- ИТОГ -->
+<section id="screen-gameover" class="screen">
+  <div class="center" style="margin-top:6vh">
+    <h1>Игра окончена</h1>
+    <p id="go-newrec" class="newrec" style="display:none">🎉 Новый рекорд! Топ-5</p>
+    <div class="stats-box" id="go-stats"><div class="pie" id="go-pie"><div class="hole" id="go-pie-label">0%<span>верно</span></div></div>
+      <div class="stat-legend"><span>✔ Верно: <b class="ok" id="go-ok">0</b></span><span>✖ Ошибок: <b class="bad" id="go-bad">0</b></span></div>
+      <div class="hist" id="go-hist"></div>
+    </div>
+    <button class="btn" onclick="showFactsRef()">📖 Посмотреть все факты</button>
+    <button class="btn primary" onclick="startGame()">🔄 Играть снова</button>
+    <button class="btn ghost" onclick="showScreen('menu')">В главное меню</button>
+  </div>
+</section>
+
+<!-- СПРАВОЧНИК ФАКТОВ -->
+<section id="screen-facts" class="screen">
+  <h1>📖 Факты</h1>
+  <p class="sub">Все использованные вопросы и ответы</p>
+  <div id="facts-body"></div>
+  <button class="btn ghost" onclick="showScreen('menu')">← Назад в меню</button>
+</section>
+
+<!-- ФОРМУЛЫ -->
+<section id="screen-formulas" class="screen">
+  <h1>🧮 Формулы</h1>
+  <p class="sub">Шпаргалка к расчётным задачам</p>
+  <div id="formulas-body"></div>
+  <button class="btn ghost" onclick="showScreen('menu')">← Назад в меню</button>
+</section>
+
+<!-- ТРЕНИРОВКА -->
+<section id="screen-train" class="screen">
+  <div class="modes-row">
+    <button class="mode-btn" data-tm="cs" onclick="setMode('cs')">С→З</button>
+    <button class="mode-btn" data-tm="sc" onclick="setMode('sc')">З→С</button>
+    <button class="mode-btn" data-tm="facts" onclick="setMode('facts')">Факты</button>
+    <button class="mode-btn" data-tm="calc" onclick="setMode('calc')">Расчёт</button>
+    <button class="mode-btn" data-tm="coords" onclick="setMode('coords')">Коорд.</button>
+  </div>
+  <div class="scorebar" style="margin-top:12px">
+    <div class="score-info tr" style="margin-left:0">
+      Верно: <b id="t-correct">0</b> · Ошибок: <b id="t-wrong">0</b> · Подряд: <b id="t-streak">0</b>
+    </div>
+  </div>
+  <div class="card">
+    <span class="tag" id="t-tag">Факты</span>
+    <p class="qtext" id="t-question">Вопрос</p>
+    <div class="options" id="t-options"></div>
+    <div class="feedback" id="t-feedback"></div>
+    <button class="btn next-btn" id="t-next" onclick="nextCard()">Следующая карточка →</button>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px">
+    <button class="btn small" onclick="showTrainStats()">📊 Статистика</button>
+    <button class="btn small" onclick="resetTrain()">Сбросить счёт</button>
+    <button class="btn small ghost" style="margin-left:auto" onclick="showScreen('menu')">В главное меню</button>
+  </div>
+</section>
+
+<!-- МОДАЛКА ПОДТВЕРЖДЕНИЯ ВЫХОДА -->
+<div class="modal-bg" id="exit-modal">
+  <div class="modal">
+    <h3>Выйти?</h3>
+    <p>Прогресс не сохранится</p>
+    <div class="btns">
+      <button class="btn" onclick="closeExitModal()">Остаться</button>
+      <button class="btn primary" onclick="confirmExit()">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА СТАТИСТИКИ ТРЕНИРОВКИ -->
+<div class="modal-bg" id="train-stats-modal">
+  <div class="modal" style="max-width:400px">
+    <h3>📊 Статистика тренировки</h3>
+    <div class="pie" id="ts-pie" style="margin-top:12px"><div class="hole" id="ts-pie-label">0%<span>верно</span></div></div>
+    <div class="stat-legend"><span>✔ Верно: <b class="ok" id="ts-ok">0</b></span><span>✖ Ошибок: <b class="bad" id="ts-bad">0</b></span></div>
+    <div class="hist" id="ts-hist"></div>
+    <button class="btn primary" onclick="closeTsModal()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- ДАННЫЕ ---------- */
+const DATA = [
+  ["Большой Пёс","Сириус"],["Орион","Ригель"],["Возничий","Капелла"],["Лира","Вега"],
+  ["Телец","Альдебаран"],["Близнецы","Поллукс"],["Лебедь","Денеб"],["Орёл","Альтаир"],
+  ["Волопас","Арктур"],["Дева","Спика"],["Кассиопея","Шедар"],["Малая Медведица","Полярная"],
+  ["Лев","Регул"],["Скорпион","Антарес"],["Кит","Дифда"],["Пегас","Эниф"],
+  ["Геркулес","Рас Альгети"],["Дракон","Эльтанин"],["Персей","Мирфак"],["Андромеда","Альферац"],
+  ["Южный Крест","Акрукс"],["Киль","Канопус"],["Центавр","Толиман"]
+];
+const CONSTELLATIONS = DATA.map(p=>p[0]);
+const STARS = DATA.map(p=>p[1]);
+
+/* Расчётные задачи (муниципальный этап). correct — строка-ответ (число/значение). */
+const CALC = [
+  {q:"Звезда имеет годичный параллакс 0.05\". Чему равно расстояние до неё?",
+   options:["20 пк","0.05 пк","2 пк","50 пк"], note:"d = 1/p = 1/0.05 = 20 пк"},
+  {q:"Параллакс звезды равен 0.25\". Расстояние до неё —", 
+   options:["4 пк","0.25 пк","25 пк","0.4 пк"], note:"d = 1/0.25 = 4 пк"},
+  {q:"Звезда находится на расстоянии 10 пк. Её годичный параллакс —",
+   options:["0.1\"","10\"","1\"","0.01\""], note:"p = 1/d = 1/10 = 0.1\""},
+  {q:"Свет от звезды идёт до нас 8.6 лет. Расстояние до неё —",
+   options:["8.6 св. года","~2.6 пк","~86 пк","8.6 пк"], note:"r = 8.6 св. года ≈ 2.6 пк (8.6/3.26)"},
+  {q:"Синодический период внешней планеты 780 суток. Её сидерический период (в годах) примерно —",
+   options:["1.88 года","0.62 года","2.56 года","1.13 года"], note:"1/S=1/T⊕−1/T; S=780 сут=2.14 г. 1/T=1−1/2.14=0.533 → T≈1.88 г"},
+  {q:"Синодический период обращения внешней планеты 1.6 года. Сидерический период —",
+   options:["2.67 года","1.6 года","0.6 года","0.9 года"], note:"1/S=1−1/T; 1/1.6=1−1/T → T=2.67 г"},
+  {q:"Во сколько раз Юпитер дальше от Солнца, чем Земля, если его период обращения 11.86 лет?",
+   options:["~5.2 раза","~11.9 раза","~2.7 раза","~3.4 раза"], note:"Третий закон: a=(T²)^⅓ = 11.86^(⅔) ≈ 5.2 а.е."},
+  {q:"Марс находится на расстоянии 1.52 а.е. от Солнца. Его период обращения (в годах) —",
+   options:["~1.88","~1.52","~2.31","~1.23"], note:"T=a^1.5 = 1.52^1.5 ≈ 1.88 г"},
+  {q:"Параллакс звезды 0.002\". Расстояние до неё —",
+   options:["500 пк","0.002 пк","5 пк","50 пк"], note:"d = 1/0.002 = 500 пк"},
+  {q:"Планета движется по круговой орбите радиусом 4 а.е. Её период в годах —",
+   options:["8 лет","4 года","16 лет","2 года"], note:"T = a^1.5 = 4^1.5 = 8 лет"},
+  {q:"Сидерический период планеты 8 лет. Расстояние от Солнца (в а.е.) —",
+   options:["4 а.е.","8 а.е.","2 а.е.","6 а.е."], note:"a = T^(2/3) = 8^(2/3) = 4 а.е."},
+  {q:"На какой высоте в верхней кульминации видна звезда со склонением δ=+60° на широте 50°?",
+   options:["80°","100°","60°","40°"], note:"h = 90° − φ + δ = 90 − 50 + 60 = 100° → за верх. кульм. 100° (если <90, иначе 180−100=80°); стандартный ответ 80°."},
+  {q:"Верхняя кульминация Полярной (δ≈+90°→ на севере) на широте 60°: высота",
+   options:["+60°","+30°","+90°","0°"], note:"h = δ ≈ φ = 60°, если Полярная на полюсе, h=φ=60°."},
+  {q:"Солнце в полдень на широте 55° в день равноденствия имеет высоту",
+   options:["35°","55°","90°","45°"], note:"h = 90° − φ = 90 − 55 = 35°"},
+  {q:"В день летнего солнцестояния (δ=+23.5°) на широте 55° Солнце в полдень на высоте",
+   options:["58.5°","35°","78.5°","90°"], note:"h = 90 − 55 + 23.5 = 58.5°"},
+  {q:"Луч света от звезды идёт 4.37 лет. Расстояние до звезды в парсеках —",
+   options:["~1.34 пк","~4.37 пк","~14.2 пк","~0.3 пк"], note:"4.37 / 3.26 ≈ 1.34 пк"},
+  {q:"Галактика удаляется со скоростью 5000 км/с. При H=70 (км/с)/Мпк расстояние до неё —",
+   options:["~71 Мпк","~350 Мпк","~5 Мпк","~71 Гпк"], note:"r = v/H = 5000/70 ≈ 71 Мпк"},
+  {q:"Скорость удаления галактики на расстоянии 100 Мпк (H=70) —",
+   options:["7000 км/с","700 км/с","70 км/с","70000 км/с"], note:"v = H·r = 70·100 = 7000 км/с"},
+  {q:"Расстояние до звезды 1.34 пк. Её годичный параллакс —",
+   options:["0.75\"","1.34\"","0.6\"","0.13\""], note:"p = 1/1.34 ≈ 0.75\""},
+  {q:"Звезда каждый год смещается на 0.04\". Расстояние до неё —",
+   options:["25 пк","0.04 пк","40 пк","4 пк"], note:"d = 1/0.04 = 25 пк"},
+];
+
+/* Координаты и видимость светил (муниципальный/регион). */
+const COORDS = [
+  {q:"Высота полюса мира над горизонтом равна численно", options:["широте места наблюдения","долготе места","склонению зенита","высоте Солнца"], note:"h_полюса = φ"},
+  {q:"Прямое восхождение измеряется в", options:["часах, минутах и секундах времени","градусах","световых годах","угловых минутах"], note:"α в часовой мере (0–24 ч)"},
+  {q:"Звёздные часы показывают звёздное время; в момент верхней кульминации звезды с α=5ч звёздное время равно", options:["5ч","0ч","12ч","не определяется"], note:"s = α в верхней кульминации"},
+  {q:"Часовой угол светила в верхней кульминации равен", options:["0","6ч","12ч","90°"], note:"верхняя кульминация: t=0"},
+  {q:"Склонение точки весеннего равноденствия", options:["0°","23.5°","−23.5°","90°"], note:"у равноденственной точки δ=0°"},
+  {q:"Точка весеннего равноденствия имеет прямое восхождение", options:["0ч","6ч","12ч","18ч"], note:"α=0ч у точки весеннего равноденствия"},
+  {q:"В последний момент перед верхней кульминацией светила его часовой угол", options:["чуть меньше 0","всегда 90°","больше 12ч","равен 180°"], note:"перед кульминацией t→0−"},
+  {q:"Зенит места — точка небесной сферы, склонение которой равно", options:["широте места","0°","высоте Солнца","широте минус 90°"], note:"δ_зенита = φ"},
+  {q:"Звезда со склонением δ=+30° на широте 50°: достигает ли она зенита?",
+   options:["нет, h_max=70°","да","нет, h_max=40°","только зимой"], note:"h_max = 90−φ+δ = 90−50+30=70°<90°, зенит недостижим"},
+  {q:"На широте 0° (экватор) полюс мира находится", options:["на горизонте","в зените","на высоте 23.5°","на высоте 90°"], note:"h_полюса=φ=0°"},
+  {q:"На северном полюсе высота полюса мира", options:["90°","0°","45°","то же, что у горизонта"], note:"φ=90°"},
+  {q:"Эклиптика наклонена к небесному экватору под углом", options:["23.5°","90°","45°","0°"], note:"ε≈23.5°"},
+  {q:"В течение суток прямое восхождение светила, если не учитывать собственное движение,", options:["не меняется","меняется на 24ч","растёт на 1°","падает на 15°"], note:"α фиксировано"},
+  {q:"Светило с δ=0° и α=0ч — это", options:["точка весеннего равноденствия","точка летнего солнцестояния","полюс мира","полярная звезда"], note:"координаты (0,0) у точки весеннего равноденствия"},
+  {q:"Кульминация светила, видимая на севере от зенита, называется", options:["нижней","верхней","упрощённой","осевой"], note:"на севере — нижняя кульминация"},
+];
+
+const FACTS = [
+  {q:"Самая большая планета", options:["Юпитер","Сатурн","Нептун","Уран"]},
+  {q:"Больше всего спутников", options:["Сатурн","Юпитер","Уран","Марс"]},
+  {q:"Ближе всего к Солнцу", options:["Меркурий","Венера","Земля","Марс"]},
+  {q:"Гора Олимп находится", options:["на Марсе","на Луне","на Венере","на Меркурии"]},
+  {q:"Нет естественных спутников", options:["у Венеры","у Марса","у Нептуна","у Юпитера"]},
+  {q:"Вращается «лёжа на боку»", options:["Уран","Сатурн","Юпитер","Нептун"]},
+  {q:"Главный пояс астероидов находится", options:["между Марсом и Юпитером","между Землёй и Марсом","между Юпитером и Сатурном","за орбитой Нептуна"]},
+  {q:"За орбитой Нептуна находится", options:["Пояс Койпера","Пояс астероидов","Облако Оорта","Пояс Астероидов Внутренний"]},
+  {q:"Самая горячая планета", options:["Венера","Меркурий","Марс","Юпитер"]},
+  {q:"Спутник Земли", options:["Луна","Фобос","Титан","Европа"]},
+  {q:"Крупнейший спутник Юпитера", options:["Ганимед","Ио","Европа","Каллисто"]},
+  {q:"Спутник Сатурна с метановыми озёрами", options:["Титан","Энцелад","Рея","Япет"]},
+  {q:"Комета с периодом ~76 лет", options:["Галлея","Энке","Биэла","Шумейкеров-Леви"]},
+  {q:"Солнечное затмение — это когда", options:["Луна закрывает Солнце","Земля закрывает Луну от Солнца","Венера проходит по диску Солнца","Солнце закрывает Луну"]},
+  {q:"Лунное затмение — это когда", options:["Земля закрывает Луну от Солнца","Луна закрывает Солнце","Луна входит в тень Юпитера","Солнце закрывает Землю"]},
+
+  {q:"Ковш Большой Медведицы состоит из", options:["7 звёзд","8 звёзд","6 звёзд","5 звёзд"]},
+  {q:"Плеяды — это", options:["рассеянное скопление в Тельце","шаровое скопление в Геркулесе","туманность в Орионе","галактика в Андромеде"]},
+  {q:"Туманность Ориона (M42) находится", options:["в Орионе","в Тельце","в Малой Медведице","в Лебеде"]},
+  {q:"Три звезды в ряд в Орионе — это", options:["Пояс Ориона","Голова Ориона","Нога Ориона","Щит Ориона"]},
+  {q:"Летний треугольник образуют", options:["Вега, Денеб, Альтаир","Сириус, Процион, Бетельгейзе","Капелла, Поллукс, Альдебаран","Антарес, Спика, Арктур"]},
+  {q:"Фигуру «W» на небе образует", options:["Кассиопея","Большая Медведица","Пегас","Андромеда"]},
+  {q:"Полярная звезда находится", options:["в Малой Медведице","в Большой Медведице","в Кассиопее","в Драконе"]},
+  {q:"Зимний шестиугольник — это", options:["астеризм ярких звёзд зимнего неба","созвездие","шаровое скопление","планетарная туманность"]},
+  {q:"Бетельгейзе находится", options:["в Орионе","в Тельце","в Близнецах","в Возничем"]},
+  {q:"«Северный Крест» — это астеризм в созвездии", options:["Лебедь","Орёл","Лира","Кассиопея"]},
+  {q:"Галактика Андромеды (M31) находится", options:["в Андромеде","в Орионе","в Тельце","в Лебеде"]},
+  {q:"Млечный Путь — это", options:["наша Галактика","скопление созвездий","туманность","пояс астероидов"]},
+  {q:"Самое большое зодиакальное созвездие", options:["Дева","Лев","Скорпион","Телец"]},
+  {q:"Через сколько зодиакальных созвездий проходит Солнце", options:["13","12","14","11"]},
+  {q:"13-е зодиакальное созвездие", options:["Змееносец","Кит","Персей","Центавр"]},
+
+  {q:"Самая яркая звезда ночного неба", options:["Сириус","Вега","Капелла","Арктур"]},
+  {q:"Красный сверхгигант в Орионе", options:["Бетельгейзе","Ригель","Беллатрикс","Саиф"]},
+  {q:"Цефеида — это", options:["пульсирующая переменная звезда","белый карлик","нейтронная звезда","двойная звезда"]},
+  {q:"После вспышки сверхновой остаётся", options:["нейтронная звезда или чёрная дыра","белый карлик","планетарная туманность","красный гигант"]},
+  {q:"Чёрная дыра — объект, у которого", options:["вторая космическая скорость больше скорости света","нет гравитации","температура выше 1 млн K","все вышеперечисленные свойства"]},
+  {q:"Наша Галактика называется", options:["Млечный Путь","Туманность Андромеды","Галактика Водоворот","Магелланово Облако"]},
+  {q:"Ближайшая крупная галактика", options:["Андромеда (M31)","Магеллановы Облака","Галактика Сомбреро","Галактика Водоворот"]},
+  {q:"Парсек — это единица", options:["расстояния","времени","яркости","массы"]},
+  {q:"Астрономическая единица (а.е.) — это", options:["расстояние от Земли до Солнца","расстояние от Солнца до Юпитера","радиус Земли","скорость света за год"]},
+  {q:"Световой год — это", options:["расстояние, которое свет проходит за год","время полёта света от Солнца до Земли","параллакс в 1 угловую секунду","возраст Вселенной в году"]},
+
+  {q:"Спектральный класс Солнца", options:["G2","K5","M1","F0"]},
+  {q:"Температура поверхности Солнца — примерно", options:["5800 K","4500 K","3000 K","11000 K"]},
+  {q:"Солнечная постоянная — это", options:["поток энергии Солнца на 1 а.е.","число пятен на Солнце","период вращения Солнца","мощность термоядерных реакций"]},
+  {q:"Диаграмма Герцшпрунга–Рессела показывает зависимость", options:["светимости от температуры (спектрального класса)","массы от радиуса","массы от светимости","температуры от возраста"]},
+  {q:"Большинство звёзд на диаграмме Г–Р находится", options:["на главной последовательности","в области гигантов","в области сверхгигантов","в области белых карликов"]},
+  {q:"Предел Чандрасекара — это максимальная масса", options:["белого карлика (~1.4 M☉)","нейтронной звезды (~3 M☉)","звезды главной последовательности","планеты"]},
+  {q:"Пульсар — это", options:["быстро вращающаяся нейтронная звезда с магнитным полем","пульсирующий гигант","двойная звезда","белый карлик"]},
+  {q:"Химический состав Солнца по массе — примерно", options:["70% водород, 28% гелий","50% водород, 40% гелий","90% гелий, 8% водород","100% водород"]},
+  {q:"Источник энергии Солнца", options:["термоядерный синтез (протон-протонный цикл)","химические реакции горения","гравитационное сжатие","радиоактивный распад"]},
+  {q:"Солнечный ветер — это", options:["поток заряженных частиц от Солнца","излучение при затмении","магнитное поле Земли","пояса радиации"]},
+
+  {q:"Первый закон Кеплера: орбита планеты — это", options:["эллипс, в одном из фокусов которого Солнце","окружность с Солнцем в центре","парабола","гипербола"]},
+  {q:"Второй закон Кеплера утверждает, что сохраняется", options:["секторная скорость (момент импульса)","линейная скорость","кинетическая энергия","радиус орбиты"]},
+  {q:"Третий закон Кеплера связывает", options:["квадрат периода и куб большой полуоси","куб периода и квадрат полуоси","период и эксцентриситет","массу и радиус планеты"]},
+  {q:"Синодический период — это период", options:["между одинаковыми конфигурациями планеты и Земли","обращения относительно звёзд","вращения вокруг своей оси","между двумя суперлуниями"]},
+  {q:"Сидерический период — это период", options:["обращения относительно звёзд","между одинаковыми конфигурациями","смены фаз Луны","вращения Солнца"]},
+  {q:"1 парсек примерно равен", options:["3.26 световых лет","1 световому году","10 световых лет","206 а.е."]},
+  {q:"Параллакс звезды — это", options:["угол, под которым видна большая полуось орбиты Земли","размер звезды","яркость звезды","температура звезды"]},
+  {q:"Звёздное время — это", options:["часовой угол точки весеннего равноденствия","время восхода Сириуса","календарное время Земли","атомное время"]},
+  {q:"Синодический месяц — примерно", options:["29.5 суток","27.3 суток","30.5 суток","31 сутки"]},
+  {q:"Эклиптика — это", options:["видимый путь Солнца по небесной сфере за год","небесный экватор","линия горизонта","ось вращения Земли"]},
+
+  {q:"Тип Млечного Пути", options:["спиральная с перемычкой (SBbc)","эллиптическая","неправильная","линзовидная"]},
+  {q:"Красное смещение — это", options:["увеличение длины волны из-за удаления объекта","уменьшение длины волны из-за приближения","покраснение из-за межзвёздной пыли","эффект Доплера в звуковом диапазоне"]},
+  {q:"Закон Хаббла связывает", options:["скорость удаления галактики и расстояние до неё","массу и светимость галактик","число звёзд и размер галактики","красное смещение и температуру"]},
+  {q:"Реликтовое излучение — это", options:["космическое микроволновое фоновое излучение (T ≈ 2.7 K)","излучение рентгеновских источников","радиоизлучение пульсаров","свет дальних галактик"]},
+  {q:"Возраст Вселенной — примерно", options:["13.8 млрд лет","4.6 млрд лет","100 млн лет","1 трлн лет"]},
+
+  {q:"Ближайшая к Солнцу звезда", options:["Проксима Центавра","Сириус","Альфа Центавра A","Барнарда"]},
+  {q:"Белый карлик — это", options:["остаток звезды типа Солнца после сброса оболочки","молодая звезда","нейтронная звезда","красный гигант"]},
+  {q:"Переменная звезда — это звезда,", options:["меняющая блеск","вращающаяся вокруг Солнца","не имеющая планет","расположенная в скоплении"]},
+  {q:"Экзопланета — это планета", options:["вне Солнечной системы","вокруг Земли","за орбитой Нептуна","у двойной звезды нет планет"]},
+  {q:"Квазар — это", options:["активное ядро далёкой галактики со сверхмассивной чёрной дырой","вид галактики","переменная звезда","шаровое скопление"]},
+
+  // Перевод единиц
+  {q:"1 парсек равен примерно", options:["3.26 световых года (≈ 206265 а.е.)","3.26 млн световых лет","20620 световых лет","9.46 световых лет"]},
+  {q:"1 световой год равен примерно", options:["9.46 триллиона км (≈ 63240 а.е.)","1 млн а.е.","1 млрд км","206265 км"]},
+  {q:"1 астрономическая единица (а.е.) — это", options:["≈ 150 млн км","≈ 1500 млн км","≈ 150 тыс. км","≈ 1.5 млн км"]},
+  {q:"1 парсек содержит примерно", options:["206265 а.е.","20626 а.е.","3.26 а.е.","150 млн а.е."]},
+  {q:"Свет проходит расстояние в 1 а.е. за", options:["≈ 8 минут 20 секунд","≈ 1 секунду","≈ 1 час","≈ 1 сутки"]},
+  {q:"1 килопарсек (кпк) равен", options:["1000 парсеков","100 парсеков","1 млн парсеков","10 парсеков"]},
+  {q:"1 мегапарсек (Мпк) равен", options:["1 млн парсеков","1000 парсеков","10 парсеков","100 парсеков"]},
+  {q:"1 год в переводе в секунды — примерно", options:["3.15×10⁷ с","3.15×10⁵ с","3.15×10⁹ с","3.15×10⁴ с"]},
+];
+
+const MODE_NAMES = {cs:"Созвездие → звезда", sc:"Звезда → созвездие", facts:"Факты",
+                    calc:"Расчётные задачи", coords:"Координаты и время"};
+const REC_KEY = "astro_records";
+const ALL_MODES = ["cs","sc","facts","calc","coords"];
+
+/* ---------- СОСТОЯНИЕ ---------- */
+let gameMode = "train";       // train | play
+let mode = "cs";              // cs | sc | facts
+let current = null;           // текущая карточка
+let answered = false;
+let lives = 3;
+let correct = 0, wrong = 0, streak = 0;
+let timerId = null, timeLeft = 15;
+const TS = 15;                // секунд на ответ
+let trainUsed = [];           // выданные вопросы текущего захода тренировки (без повторов)
+let answerLog = [];           // история ответов текущей сессии: true=верно, false=ошибка/просрочка
+
+const $ = id => document.getElementById(id);
+
+/* ---------- ЭКРАНЫ ---------- */
+function showScreen(id){
+  const el = $(id.startsWith("screen-") ? id : "screen-" + id);
+  if(!el) return;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  el.classList.add("active");
+  stopTimer();
+}
+
+/* ---------- ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ---------- */
+function loadRecords(){
+  try{
+    const raw = localStorage.getItem(REC_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveRecord(m, score){
+  try{
+    const recs = loadRecords();
+    const entry = {mode:m, score, date:new Date().toISOString().slice(0,10)};
+    recs.push(entry);
+    recs.sort((a,b)=> b.score - a.score);
+    const top = recs.filter(r=>r.mode===m).slice(0,5);
+    const rest = recs.filter(r=>r.mode!==m);
+    localStorage.setItem(REC_KEY, JSON.stringify([...top, ...rest]));
+    return top.length <= 5; // true (всегда топ-5 ставим)
+  }catch(e){ return false; }
+}
+function isTopScore(m, score){
+  const list = loadRecords().filter(r=>r.mode===m);
+  if(list.length < 5) return true;
+  return score > Math.min(...list.map(r=>r.score));
+}
+
+function renderRecords(){
+  const body = $("records-body");
+  const recs = loadRecords();
+  let html = "";
+  ["cs","sc","facts","calc","coords"].forEach(m=>{
+    html += `<div class="rec-sec"><h3>${MODE_NAMES[m]}</h3>`;
+    const top = recs.filter(r=>r.mode===m);
+    if(top.length===0){
+      html += `<div class="empty">Пока пусто — сыграй первую игру</div>`;
+    }else{
+      html += `<table class="rec"><tr><th>#</th><th>Счёт</th><th>Дата</th></tr>`;
+      top.forEach((r,i)=>{
+        html += `<tr><td>${i+1}</td><td class="score">${r.score}</td><td>${r.date}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+    html += `</div>`;
+  });
+  body.innerHTML = html;
+}
+
+/* ---------- ВЫБОР ВОПРОСА ---------- */
+function poolLenFor(mode){
+  if(mode==="facts") return FACTS.length;
+  if(mode==="calc") return CALC.length;
+  if(mode==="coords") return COORDS.length;
+  return DATA.length;
+}
+function poolFor(mode){
+  if(mode==="facts") return FACTS;
+  if(mode==="calc") return CALC;
+  if(mode==="coords") return COORDS;
+  return null;
+}
+function pickQuestion(){
+  const noRepeat = (gameMode==="train"); // в тренировке не повторяем уже выданные
+  const poolLen = poolLenFor(mode);
+  let i;
+  if(noRepeat){
+    if(trainUsed.length >= poolLen) trainUsed = []; // заход исчерпан — сбрасываем
+    // выбираем индекс, которого ещё нет в trainUsed и (для cs/sc/facts) не текущий
+    let ok = false, guard = 0;
+    do{
+      i = Math.floor(Math.random()*poolLen);
+      if(!trainUsed.includes(i) && current && i===current.dataIdx) continue;
+      ok = !trainUsed.includes(i);
+      guard++;
+    }while(!ok && guard < 200);
+    if(!ok) i = randExcept(poolLen, current ? current.dataIdx : null);
+    trainUsed.push(i);
+  }else{
+    i = randExcept(poolLen, current ? current.dataIdx : null);
+  }
+
+  let q;
+  if(mode === "cs"){
+    q = {type:"cs", dataIdx:i, text:DATA[i][0]+" → к какой звезде?", correct:DATA[i][1],
+         wrong: pickWrong(STARS, DATA[i][1], 3)};
+  }else if(mode === "sc"){
+    q = {type:"sc", dataIdx:i, text:DATA[i][1]+" — в каком созвездии?", correct:DATA[i][0],
+         wrong: pickWrong(CONSTELLATIONS, DATA[i][0], 3)};
+  }else if(mode==="calc" || mode==="coords"){
+    const item = poolFor(mode)[i];
+    q = {type:mode, dataIdx:i, text:item.q, correct:item.options[0],
+         options:shuffle(item.options.slice()), note:item.note||""};
+  }else{
+    q = {type:"facts", dataIdx:i, text:FACTS[i].q, correct:FACTS[i].options[0],
+         options:shuffle(FACTS[i].options.slice())};
+  }
+  return q;
+}
+function randExcept(len, except){
+  if(except===null||len<=1) return Math.floor(Math.random()*len);
+  let i = Math.floor(Math.random()*(len-1));
+  if(i>=except) i++;
+  return i;
+}
+function pickWrong(pool, correct, n){
+  const others = pool.filter(x=>x!==correct);
+  const picked = [];
+  while(picked.length<n && others.length){
+    const i = Math.floor(Math.random()*others.length);
+    picked.push(others.splice(i,1)[0]);
+  }
+  return picked;
+}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+/* ---------- ТАЙМЕР ---------- */
+function startTimer(){
+  timeLeft = TS;
+  const fill = $("g-timer-fill");
+  fill.className = "timer-fill ok";
+  fill.style.width = "100%";
+  if(timerId) clearInterval(timerId);
+  timerId = setInterval(()=>{
+    timeLeft -= 0.1;
+    if(fill) updateTimerBar(fill);
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      timerId = null;
+      if(!answered) handleTimeout();
+    }
+  }, 100);
+}
+function updateTimerBar(fill){
+  const pct = Math.max(0, timeLeft / TS * 100);
+  fill.style.width = pct + "%";
+  fill.className = "timer-fill " + (pct>50?"ok":(pct>20?"warn":"danger"));
+}
+function stopTimer(){
+  if(timerId){ clearInterval(timerId); timerId = null; }
+}
+
+/* ---------- ГЕЙМПЛЕЙ ---------- */
+function setMode(m){
+  mode = m;
+  const tag = MODE_NAMES[m] || "Факты";
+  $("g-tag").textContent = tag;
+  $("t-tag").textContent = tag;
+  // Подсветка кнопок режима в тренировке
+  document.querySelectorAll(".mode-btn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.tm===m);
+  });
+  current = null;   // сброс, чтобы не было ложного повтора между типами
+  trainUsed = [];   // новый режим — новая очередь в тренировке
+}
+
+function showQuestion(screenId){
+  current = pickQuestion();
+  answered = false;
+  const optsBox = $(screenId==="game" ? "g-options" : "t-options");
+  const fb = $(screenId==="game" ? "g-feedback" : "t-feedback");
+  const next = $(screenId==="game" ? "g-next" : "t-next");
+
+  optsBox.innerHTML = "";
+  fb.textContent = "";
+  fb.className = "feedback";
+  next.style.display = "none";
+
+  const qText = $(screenId==="game" ? "g-question" : "t-question");
+  qText.textContent = current.text;
+
+  const options = current.options ? current.options : [current.correct, ...current.wrong];
+  const shuffled = current.options ? current.options.slice() : shuffle(options.slice());
+
+  shuffled.forEach(opt=>{
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = opt;
+    b.onclick = ()=>handleAnswer(opt, screenId);
+    optsBox.appendChild(b);
+  });
+
+  if(screenId==="game" && gameMode==="play"){
+    startTimer();
+  }
+}
+
+function handleAnswer(chosen, screenId){
+  if(answered) return;
+  answered = true;
+  stopTimer();
+
+  const correctVal = current.correct;
+  const optsBox = $(screenId==="game" ? "g-options" : "t-options");
+  const btns = optsBox.querySelectorAll(".opt");
+  const fb = $(screenId==="game" ? "g-feedback" : "t-feedback");
+  const next = $(screenId==="game" ? "g-next" : "t-next");
+  const isRight = chosen === correctVal;
+
+  btns.forEach(b=>{
+    b.disabled = true;
+    if(b.textContent === correctVal){ b.classList.add("correct"); }
+    else if(b.textContent === chosen && !isRight){ b.classList.add("wrong"); }
+    else { b.classList.add("dim"); }
+  });
+
+  if(isRight){
+    fb.textContent = "Верно! ✓" + (current.note ? "  ·  " + current.note : "");
+    fb.className = "feedback okc";
+    correct++; streak++; answerLog.push(true);
+    if(screenId==="game"){ updateGameStats(); } else { updateTrainStats(); }
+  }else{
+    fb.textContent = "Ошибка. Правильный ответ: " + correctVal + (current.note ? "  ·  " + current.note : "");
+    fb.className = "feedback errc";
+    wrong++; streak = 0; answerLog.push(false);
+    if(screenId==="game"){ updateGameStats(); } else { updateTrainStats(); }
+    if(gameMode==="play" && screenId==="game") loseLife();
+  }
+  next.style.display = "block";
+}
+
+function handleTimeout(){
+  answered = true;
+  const optsBox = $("g-options");
+  const fb = $("g-feedback");
+  const next = $("g-next");
+  const correctVal = current.correct;
+
+  optsBox.querySelectorAll(".opt").forEach(b=>{
+    b.disabled = true;
+    if(b.textContent === correctVal){ b.classList.add("correct"); }
+    else { b.classList.add("dim"); }
+  });
+  fb.textContent = "Время вышло. Правильный ответ: " + correctVal + (current.note ? "  ·  " + current.note : "");
+  fb.className = "feedback errc";
+  wrong++; streak = 0; answerLog.push(false);
+  updateGameStats();
+  loseLife();
+  next.style.display = "block";
+}
+
+function loseLife(){
+  lives--;
+  renderHearts();
+  if(lives<=0){ endGame(); }
+}
+
+function renderHearts(){
+  const h = $("hearts");
+  let s = "";
+  for(let i=0;i<3;i++){
+    s += `<span class="${i<lives?"":"off"}">❤️</span>`;
+  }
+  h.innerHTML = s;
+}
+
+function updateGameStats(){
+  $("g-correct").textContent = correct;
+  $("g-streak").textContent = streak;
+}
+function updateTrainStats(){
+  $("t-correct").textContent = correct;
+  $("t-wrong").textContent = wrong;
+  $("t-streak").textContent = streak;
+}
+
+/* ---------- ЗАПУСК / ЗАВЕРШЕНИЕ ---------- */
+function startGame(){
+  gameMode = "play";
+  lives = 3; correct = 0; wrong = 0; streak = 0; answerLog = [];
+  renderHearts();
+  updateGameStats();
+  showScreen("game");
+  showQuestion("game");
+}
+
+function nextCard(){
+  if(gameMode==="play"){
+    showQuestion("game");
+  }else{
+    showQuestion("train");
+  }
+}
+
+function endGame(){
+  stopTimer();
+  $("go-ok").textContent = correct;
+  $("go-bad").textContent = wrong;
+  buildPie($("go-pie"), $("go-pie-label"), correct, wrong);
+  buildHist($("go-hist"), answerLog);
+  const isTop = isTopScore(mode, correct);
+  $("go-newrec").style.display = isTop ? "block" : "none";
+  if(isTop) saveRecord(mode, correct);
+  showScreen("gameover");
+}
+
+/* ---------- ДИАГРАММА СТАТИСТИКИ ---------- */
+function buildPie(el, labelEl, ok, bad){
+  const total = ok + bad;
+  if(total===0){
+    el.style.background = "conic-gradient(#2e4bd6 0% 100%)";
+    labelEl.innerHTML = "—<span>ответов</span>";
+    return;
+  }
+  const okPct = ok/total*100;
+  el.style.background = `conic-gradient(var(--ok) 0 ${okPct}%, var(--err) ${okPct}% 100%)`;
+  labelEl.innerHTML = Math.round(okPct)+"%<span>верно</span>";
+}
+function buildHist(el, log){
+  el.innerHTML = "";
+  const arr = log.slice(-20);
+  arr.forEach(v=>{
+    const b = document.createElement("div");
+    b.className = "bar " + (v ? "okc" : "errc");
+    b.title = v ? "Верно" : "Ошибка";
+    el.appendChild(b);
+  });
+}
+
+/* ---------- СПРАВОЧНИК ФАКТОВ ---------- */
+const FORMULAS = [
+  {name:"Годичный параллакс → расстояние", expr:"d (пк) = 1 / p (″)",
+   ex:"p = 0.05″ ⇒ d = 1/0.05 = 20 пк"},
+  {name:"Расстояние → параллакс", expr:"p (″) = 1 / d (пк)",
+   ex:"d = 10 пк ⇒ p = 0.1″"},
+  {name:"Расстояние в световых годах ↔ парсек", expr:"1 пк ≈ 3.26 св. года",
+   ex:"8.6 св. года ≈ 8.6/3.26 ≈ 2.64 пк"},
+  {name:"Пояснение единиц", expr:"1 пк ≈ 206265 а.е. ≈ 3.26 св. года; 1 а.е. ≈ 150 млн км",
+   ex:"1 св. год ≈ 9.46·10¹² км ≈ 63240 а.е."},
+  {name:"Третий закон Кеплера", expr:"T² = a³  (T в годах, a в а.е.)",
+   ex:"a = 4 а.е. ⇒ T = 4^1.5 = 8 лет;  T = 8 лет ⇒ a = 8^(⅔) = 4 а.е."},
+  {name:"Синодический период (внешняя)", expr:"1/S = 1/T⊕ − 1/T",
+   ex:"S = 780 сут ≈ 2.14 г ⇒ 1/T = 1 − 1/2.14 ⇒ T ≈ 1.88 г"},
+  {name:"Синодический период (внутренняя)", expr:"1/S = 1/T − 1/T⊕",
+   ex:"для Меркурия T ≈ 0.241 г ⇒ S ≈ 0.317 г (116 сут)"},
+  {name:"Высота светила в кульминации", expr:"h = 90° − φ + δ",
+   ex:"φ = 50°, δ = +60° ⇒ h = 90 − 50 + 60 = 100° → верхняя 100° (>90, см. 80°)"},
+  {name:"Высота полюса мира", expr:"h_полюса = φ",
+   ex:"на широте 60° Полярная на высоте ≈ 60°"},
+  {name:"Солнце в равноденствие", expr:"h_noon = 90° − φ",
+   ex:"φ = 55° ⇒ h = 35°"},
+  {name:"Солнце в солнцестояние", expr:"h = 90° − φ ± 23.5°",
+   ex:"летнее, φ=55°: 90 − 55 + 23.5 = 58.5°"},
+  {name:"Закон Хаббла", expr:"v = H · r",
+   ex:"H = 70 (км/с)/Мпк, r = 100 Мпк ⇒ v = 7000 км/с"},
+  {name:"Расстояние из закона Хаббла", expr:"r = v / H",
+   ex:"v = 5000 км/с ⇒ r = 5000/70 ≈ 71 Мпк"},
+  {name:"Угловой размер → линейный", expr:"l = α · r  (α в радианах, l и r в одних единицах)",
+   ex:"α = 1″ = 4.85·10⁻⁶ рад на 10 пк ≈ 48.5 а.е."},
+];
+function showFormulas(){
+  const body = $("formulas-body");
+  if(body.dataset.filled) { showScreen("formulas"); return; }
+  body.innerHTML = FORMULAS.map(f=>
+    `<div class="formula"><p class="fname">${f.name}</p><p class="fexpr">${f.expr}</p><p class="fex">Пример: ${f.ex}</p></div>`
+  ).join("");
+  body.dataset.filled = "1";
+  showScreen("formulas");
+}
+
+function showFactsRef(){
+  const body = $("facts-body");
+  if(body.dataset.filled) { showScreen("facts"); return; }
+  let html = `<div class="fact-card" style="opacity:.8"><p class="fq" style="margin:0">Созвездия и звёзды — ${DATA.length} пар</p></div>`;
+  DATA.forEach(p=>{
+    html += `<div class="fact-card"><p class="fq">${p[0]} → ${p[1]}</p></div>`;
+  });
+  html += `<div class="fact-card" style="opacity:.8"><p class="fq" style="margin:0">Факты — ${FACTS.length}</p></div>`;
+  FACTS.forEach(f=>{
+    html += `<div class="fact-card"><p class="fq">${f.q}?</p><p class="fa">✓ ${f.options[0]}</p></div>`;
+  });
+  html += `<div class="fact-card" style="opacity:.8"><p class="fq" style="margin:0">Расчётные задачи — ${CALC.length} (ответ + формула)</p></div>`;
+  CALC.forEach(f=>{
+    html += `<div class="fact-card"><p class="fq">${f.q}</p><p class="fa">✓ ${f.options[0]}  ·  ${f.note}</p></div>`;
+  });
+  html += `<div class="fact-card" style="opacity:.8"><p class="fq" style="margin:0">Координаты и время — ${COORDS.length}</p></div>`;
+  COORDS.forEach(f=>{
+    html += `<div class="fact-card"><p class="fq">${f.q}</p><p class="fa">✓ ${f.options[0]}  ·  ${f.note}</p></div>`;
+  });
+  body.innerHTML = html;
+  body.dataset.filled = "1";
+  showScreen("facts");
+}
+
+/* ---------- ТРЕНИРОВКА ---------- */
+function startTrain(){
+  gameMode = "train";
+  correct = 0; wrong = 0; streak = 0; answerLog = [];
+  updateTrainStats();
+  current = null;
+  trainUsed = [];
+  showScreen("train");
+  showQuestion("train");
+}
+function resetTrain(){
+  correct = 0; wrong = 0; streak = 0; answerLog = [];
+  updateTrainStats();
+  current = null;
+  trainUsed = [];
+}
+
+/* ---------- ВЫХОД ---------- */
+function exitGame(){
+  // На экране игры доступно только во время партии (не на итоге)
+  $("exit-modal").classList.add("show");
+}
+function showTrainStats(){
+  $("ts-ok").textContent = correct;
+  $("ts-bad").textContent = wrong;
+  buildPie($("ts-pie"), $("ts-pie-label"), correct, wrong);
+  buildHist($("ts-hist"), answerLog);
+  $("train-stats-modal").classList.add("show");
+}
+function closeTsModal(){ $("train-stats-modal").classList.remove("show"); }
+function closeExitModal(){ $("exit-modal").classList.remove("show"); }
+function confirmExit(){
+  $("exit-modal").classList.remove("show");
+  stopTimer();
+  gameMode = "train";
+  current = null;
+  showScreen("menu");
+}
+
+/* ---------- ПЕРЕКЛЮЧЕНИЕ РЕЖИМА В ТРЕНИРОВКЕ ---------- */
+document.querySelectorAll(".mode-btn").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    setMode(b.dataset.tm);
+    showQuestion("train");
+  });
+});
+
+/* ---------- СТАРТ ---------- */
+setMode("cs");
+updateTrainStats();
+</script>
+</body>
+</html>
